@@ -8,7 +8,7 @@ import svgelements
 from svgpathtools import Arc, CubicBezier, Line, Path, QuadraticBezier
 
 from build123d.build_enums import AngularDirection
-from build123d.geometry import Axis, Plane
+from build123d.geometry import Axis, Color, Plane
 from build123d.topology import RAD2DEG, Edge, Face, Wire
 
 logger = logging.getLogger(__name__)
@@ -25,6 +25,17 @@ def import_svg_document(
     mirror: bool = True,
 ):
     """Import shapes from an SVG document as faces and/or wires.
+
+    Each visible shapes or paths is converted to zero or more Face if it is filled,
+    and to zero or more Wire if it is not filled.
+
+    This importer does not cover the whole SVG specification, its most notable known limitations are:
+    
+    - degenerate and self-crossing paths may result in invalid faces and wires
+    - clipping, both by clipping paths and viewport, is ignored
+    - graphic properties such as line strokes and pattern fills are ignored
+
+    Documents relying on these features need to be pre-processed externally.
 
     Args:
         svg_file: svg file path or file object
@@ -48,11 +59,15 @@ def import_svg_document(
 
     def _path_to_faces_or_wires(svgelements_path: svgelements.Path):
         path = _path_to_svgpathtools(svgelements_path)
-        is_filled = svgelements_path.fill.value is not None
-        if is_filled:
+        fill = svgelements_path.fill
+        stroke = svgelements_path.stroke
+
+        if fill.value is not None:
             faces_or_wires = faces_from_svg_path(path)
+            color = fill
         else:
             faces_or_wires = wires_from_svg_path(path)
+            color = stroke if stroke.value is not None else None
 
         label = None
         if label_by:
@@ -66,6 +81,13 @@ def import_svg_document(
                 face_or_wire = cast(Union[Face, Wire], face_or_wire.mirror(Plane.XZ))
             if label:
                 face_or_wire.label = label
+            if color:
+                face_or_wire.color = Color(
+                    color.red / 255,
+                    color.green / 255,
+                    color.blue / 255,
+                    color.alpha / 255,
+                )
             yield face_or_wire
 
     try:

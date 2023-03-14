@@ -57,6 +57,22 @@ class TestSvgImport(unittest.TestCase):
         self.assertIsInstance(imported[1], Face)
         self.assertEqual(imported[1].label, "path2")
 
+    def test_doc_with_colors(self):
+        svg = StringIO(
+            """<svg>
+                <path id="path1" fill="blue" d="M 0,10 v 3"/>
+                <path id="path2" fill="none" stroke="red" d="M 0,0 v 2 h 2 z"/>
+            </svg>"""
+        )
+        imported = list(import_svg_document(svg, label_by="id"))
+        assert len(imported) == 2
+
+        self.assertIsInstance(imported[0], Face)
+        self.assertEqual(imported[0].color.to_tuple(), (0.0, 0.0, 1.0, 1.0))
+
+        self.assertIsInstance(imported[1], Wire)
+        self.assertEqual(imported[1].color.to_tuple(), (1.0, 0.0, 0.0, 1.0))
+
     def test_non_path_shapes(self):
         svg = StringIO(
             """<svg>
