@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="40mm"
+   height="40mm"
+   viewBox="0 0 40 40"
+   version="1.1"
+   id="svg5"
+   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
+   sodipodi:docname="inkscape-drawing.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview7"
+     pagecolor="#505050"
+     bordercolor="#eeeeee"
+     borderopacity="1"
+     inkscape:showpageshadow="0"
+     inkscape:pageopacity="0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#505050"
+     inkscape:document-units="mm"
+     showgrid="false"
+     inkscape:zoom="4.3655376"
+     inkscape:cx="77.310066"
+     inkscape:cy="75.477531"
+     inkscape:window-width="1243"
+     inkscape:window-height="790"
+     inkscape:window-x="280"
+     inkscape:window-y="202"
+     inkscape:window-maximized="0"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs2" />
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1">
+    <rect
+       style="fill:#000000;fill-opacity:0.42981347;stroke:none;stroke-width:1.00012;stroke-miterlimit:1.2;stroke-opacity:0.5;paint-order:stroke fill markers"
+       id="rect4150-5-3-5"
+       width="3.9279966"
+       height="11.689919"
+       x="-28.771935"
+       y="-28.374603"
+       transform="rotate(-156.31645)"
+       inkscape:label="leg" />
+    <rect
+       style="fill:#000000;fill-opacity:0.42981347;stroke:none;stroke-width:1.00012;stroke-miterlimit:1.2;stroke-opacity:0.5;paint-order:stroke fill markers"
+       id="rect4150-5-3-5-6"
+       width="3.9279966"
+       height="11.689919"
+       x="-12.081896"
+       y="-44.1446"
+       transform="rotate(157.67331)"
+       inkscape:label="leg" />
+    <rect
+       style="fill:#000000;fill-opacity:0.42981347;stroke:none;stroke-width:1.00012;stroke-miterlimit:1.2;stroke-opacity:0.5;paint-order:stroke fill markers"
+       id="rect4150-5-3"
+       width="2.7989657"
+       height="8.3298645"
+       x="-31.084049"
+       y="11.147898"
+       transform="rotate(-118.98141)"
+       inkscape:label="arm" />
+    <rect
+       style="fill:#000000;fill-opacity:0.42981347;stroke:none;stroke-width:1.00012;stroke-miterlimit:1.2;stroke-opacity:0.5;paint-order:stroke fill markers"
+       id="rect4150-5"
+       width="2.7989657"
+       height="8.3298645"
+       x="-3.2407777"
+       y="16.630337"
+       transform="rotate(-42.358539)"
+       inkscape:label="arm" />
+    <rect
+       style="fill:#000000;fill-opacity:0.42981347;stroke:none;stroke-width:1.00012;stroke-miterlimit:1.2;stroke-opacity:0.5;paint-order:stroke fill markers"
+       id="rect4150"
+       width="8.4870768"
+       height="11.633787"
+       x="16.371494"
+       y="13.782736"
+       transform="rotate(1.9159718)"
+       inkscape:label="body" />
+    <rect
+       style="fill:#000000;fill-opacity:0.42981347;stroke:none;stroke-width:1.00012;stroke-miterlimit:1.2;stroke-opacity:0.5;paint-order:stroke fill markers"
+       id="rect2966"
+       width="14.086185"
+       height="11.108258"
+       x="17.00206"
+       y="-2.0095763"
+       rx="0"
+       ry="0"
+       transform="rotate(13.992872)"
+       inkscape:label="head" />
+    <path
+       id="path3933"
+       style="stroke-width:1.00012;stroke-miterlimit:1.2;stroke-opacity:0.5;paint-order:stroke fill markers"
+       d="m 20.619413,5.9820632 a 1.2562218,1.2562218 0 0 0 -1.222148,0.9523964 1.2562218,1.2562218 0 0 0 0.915191,1.5223888 1.2562218,1.2562218 0 0 0 1.522904,-0.9151905 1.2562218,1.2562218 0 0 0 -0.915189,-1.5223868 1.2562218,1.2562218 0 0 0 -0.30076,-0.0372 z m 4.140833,5.17e-4 A 1.7102775,1.7102775 0 0 0 23.096265,7.2791431 1.7102775,1.7102775 0 0 0 24.342183,9.3524 1.7102775,1.7102775 0 0 0 26.415441,8.1064824 1.7102775,1.7102775 0 0 0 25.169524,6.0332239 1.7102775,1.7102775 0 0 0 24.760245,5.9825849 Z m -5.901448,3.1822352 c -0.399041,1.6013216 0.715453,3.2574926 2.489252,3.6995166 1.773801,0.442023 3.535083,-0.497777 3.934127,-2.099098 z"
+       inkscape:label="face" />
+  </g>
+</svg>
