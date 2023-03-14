@@ -2,7 +2,7 @@ import logging
 import pathlib
 from collections import defaultdict
 from itertools import chain
-from typing import Iterable, Optional, TextIO, cast
+from typing import Iterable, Optional, TextIO, Union, cast
 
 import svgelements
 from svgpathtools import Arc, CubicBezier, Line, Path, QuadraticBezier
@@ -13,17 +13,16 @@ from build123d.topology import RAD2DEG, Edge, Face, Wire
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_TOL = 1e-6
+INKSCAPE_LABEL = "{http://www.inkscape.org/namespaces/inkscape}label"
 
-SvgPathLike = str | Path
+SvgPathLike = Union[str, Path]
 
 
 def import_svg_document(
-    svg_file: str | pathlib.Path | TextIO,
+    svg_file: Union[str, pathlib.Path, TextIO],
     *,
     label_by: Optional[str] = "id",
     mirror: bool = True,
-    tolerance: float = DEFAULT_TOL,
 ):
     """Import shapes from an SVG document as faces and/or wires.
 
@@ -31,7 +30,6 @@ def import_svg_document(
         svg_file: svg file path or file object
         label_by: name of SVG attribute to use as wire/face label
         flip_y: whether to mirror the Y-coordinates to compensate for SVG's top left origin
-        tolerance: tolerance for path operations
 
     Raises:
         SyntaxError:
@@ -52,9 +50,9 @@ def import_svg_document(
         path = _path_to_svgpathtools(svgelements_path)
         is_filled = svgelements_path.fill.value is not None
         if is_filled:
-            faces_or_wires = faces_from_svg_path(path, tolerance=tolerance)
+            faces_or_wires = faces_from_svg_path(path)
         else:
-            faces_or_wires = wires_from_svg_path(path, tolerance=tolerance)
+            faces_or_wires = wires_from_svg_path(path)
 
         label = None
         if label_by:
@@ -65,7 +63,7 @@ def import_svg_document(
 
         for face_or_wire in faces_or_wires:
             if mirror:
-                face_or_wire = face_or_wire.mirror(Plane.XZ)
+                face_or_wire = cast(Union[Face, Wire], face_or_wire.mirror(Plane.XZ))
             if label:
                 face_or_wire.label = label
             yield face_or_wire
@@ -94,12 +92,11 @@ def import_svg_document(
         raise
 
 
-def faces_from_svg_path(path: SvgPathLike, *, tolerance: float = DEFAULT_TOL):
+def faces_from_svg_path(path: SvgPathLike):
     """Convert an SVG path to faces.
 
     Args:
         path: svg path to convert
-        tolerance: tolerance for path operations
 
     Raises:
         SyntaxError:
@@ -122,15 +119,13 @@ def faces_from_svg_path(path: SvgPathLike, *, tolerance: float = DEFAULT_TOL):
                 raise ValueError("could ensure path is closed")
 
     for exterior, interiors in unnest_paths(*subpaths):
-        wires = Wire.combine(svg_path_to_edges(exterior), tol=tolerance)
-        if wires:
-            outer_wire, *extra_outer_wires = wires
-            inner_wires = Wire.combine(
-                chain.from_iterable(
-                    svg_path_to_edges(interior) for interior in interiors
-                ),
-                tol=tolerance,
-            )
+        outer_wires = list(wires_from_svg_path(exterior))
+        if outer_wires:
+            outer_wire, *extra_outer_wires = outer_wires
+            inner_wires = [
+                known_continuous_edges_to_wire(edges_from_svg_path(interior))
+                for interior in interiors
+            ]
             if extra_outer_wires:
                 logger.warning("exterior path produced multiple outer wires")
                 yield Face.make_from_wires(outer_wire, extra_outer_wires + inner_wires)
@@ -138,33 +133,31 @@ def faces_from_svg_path(path: SvgPathLike, *, tolerance: float = DEFAULT_TOL):
                 yield Face.make_from_wires(outer_wire, inner_wires)
 
 
-def wires_from_svg_path(path: SvgPathLike, *, tolerance: float = DEFAULT_TOL):
+def wires_from_svg_path(path: SvgPathLike):
     """Convert an SVG path to wires.
 
     Args:
         path: svg path to convert
-        tolerance: tolerance for path operations
 
     Raises:
         SyntaxError:
 
     Yields:
-        edge
+        wire
     """
 
     path = path_from_SvgPathLike(path)
-    for subpath in path.continuous_subpaths():
-        yield from Wire.combine(svg_path_to_edges(subpath), tol=tolerance)
-        # TODO figure out how to build wire directly instead
-        # `subpath` is already continuous and ordered at that point so `combine` is overkill
+    subpaths: list[Path] = path.continuous_subpaths()
+    for subpath in subpaths:
+        if subpath:
+            yield known_continuous_edges_to_wire(edges_from_svg_path(subpath))
 
 
-def svg_path_to_edges(path: SvgPathLike):
+def edges_from_svg_path(path: SvgPathLike):
     """Convert an SVG path to edges.
 
     Args:
         path: svg path to convert
-        tolerance: tolerance for path operations (`1e-6' by default)
 
     Raises:
         SyntaxError:
@@ -191,22 +184,48 @@ def svg_path_to_edges(path: SvgPathLike):
                 v(segment.end),
             )
         elif isinstance(segment, Arc):
-            if segment.delta < 0:
-                angular_direction = AngularDirection.CLOCKWISE
-            else:
+            if segment.sweep:
                 angular_direction = AngularDirection.COUNTER_CLOCKWISE
+            else:
+                angular_direction = AngularDirection.CLOCKWISE
 
             plane = Plane.XY
             plane.origin = v(segment.center)
+            start_angle = segment.theta
+            end_angle = segment.theta + segment.delta
             ellipse = Edge.make_ellipse(
                 x_radius=segment.radius.real,
                 y_radius=segment.radius.imag,
                 plane=plane,
-                start_angle=segment.theta,
-                end_angle=segment.theta + segment.delta,
+                start_angle=min(start_angle, end_angle),
+                end_angle=max(start_angle, end_angle),
                 angular_direction=angular_direction,
             ).rotate(Axis(plane.origin, plane.z_dir.to_tuple()), segment.phi * RAD2DEG)
             yield cast(Edge, ellipse)
+
+
+def known_continuous_edges_to_wire(edges: Iterable[Edge]):
+    """Make a single wire from known-good edges; with no reordering nor splitting"""
+    return Wire.make_wire(fill_gaps_between_edges(edges, 1e-7))
+    # tolerance value has been established empirically, increasing it to `1e-6` fails some tests
+    # probably linked to some OCCT value we could use instead of hardcoding?
+
+
+def fill_gaps_between_edges(edges: Iterable[Edge], tolerance: float):
+    """Insert line segments between edges that are more that `tolerance` apart"""
+    it = filter(Edge.is_valid, edges)
+    try:
+        edge = next(it)
+        yield edge
+        end = edge.end_point()
+        while True:
+            edge = next(it)
+            if abs(edge.start_point() - end) > tolerance:
+                yield Edge.make_line(end, edge.start_point())
+            yield edge
+            end = edge.end_point()
+    except StopIteration:
+        pass
 
 
 def unnest_paths(

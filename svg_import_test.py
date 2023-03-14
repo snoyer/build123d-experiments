@@ -1,10 +1,16 @@
+from math import pi
 import pathlib
 import tempfile
 import unittest
 from io import StringIO
 
 from build123d.topology import Face, Shape, Wire
-from svg_import import faces_from_svg_path, import_svg_document, wires_from_svg_path
+from svg_import import (
+    edges_from_svg_path,
+    faces_from_svg_path,
+    import_svg_document,
+    wires_from_svg_path,
+)
 
 
 class TestSvgImport(unittest.TestCase):
@@ -19,7 +25,7 @@ class TestSvgImport(unittest.TestCase):
             assert len(list(import_svg_document(f.name))) == 1
             assert len(list(import_svg_document(pathlib.Path(f.name)))) == 1
 
-    def test_doc_with_ids(self):
+    def test_doc_with_id_attr(self):
         svg = StringIO(
             """<svg>
                 <path id="path1" fill="none" d="M 0,10 v 3"/>
@@ -27,6 +33,22 @@ class TestSvgImport(unittest.TestCase):
             </svg>"""
         )
         imported = list(import_svg_document(svg, label_by="id"))
+        assert len(imported) == 2
+
+        self.assertIsInstance(imported[0], Wire)
+        self.assertEqual(imported[0].label, "path1")
+
+        self.assertIsInstance(imported[1], Face)
+        self.assertEqual(imported[1].label, "path2")
+
+    def test_doc_with_class_attr(self):
+        svg = StringIO(
+            """<svg>
+                <path class="path1" fill="none" d="M 0,10 v 3"/>
+                <path class="path2" d="M 0,0 v 2 h 2 z"/>
+            </svg>"""
+        )
+        imported = list(import_svg_document(svg, label_by="class"))
         assert len(imported) == 2
 
         self.assertIsInstance(imported[0], Wire)
@@ -63,7 +85,23 @@ class TestSvgImport(unittest.TestCase):
         assert len(res) == 1
         self.assertIsInstance(res[0], Wire)
 
+    def test_arc_flags(self):
+        c = pi * 45**2
+        s = (45 * 2) ** 2
+        cases = [
+            ("M  80  80 A 45 45, 0, 0, 0, 125 125 L 125  80 Z", c / 4),
+            ("M 230  80 A 45 45, 0, 1, 0, 275 125 L 275  80 Z", 3 / 4 * c + s / 4),
+            ("M  80 230 A 45 45, 0, 0, 1, 125 275 L 125 230 Z", 1 / 4 * (s - c)),
+            ("M 230 230 A 45 45, 0, 1, 1, 275 275 L 275 230 Z", 3 / 4 * c),
+        ]
+        for path, area in cases:
+            res = list(faces_from_svg_path(path))
+            assert len(res) == 1
+            self.assertIsInstance(res[0], Face)
+            self.assertAlmostEqual(res[0].area, area)
+
     def test_arcs_path_to_wire(self):
+        """this path is continuous but introduces small discontinuities when making the edges"""
         res = list(
             wires_from_svg_path(
                 "M 10 315 L 110 215"
@@ -75,6 +113,11 @@ class TestSvgImport(unittest.TestCase):
         )
         assert len(res) == 1
         self.assertIsInstance(res[0], Wire)
+
+    def test_empty_paths(self):
+        self.assertFalse(list(edges_from_svg_path("")))
+        self.assertFalse(list(wires_from_svg_path("")))
+        self.assertFalse(list(faces_from_svg_path("")))
 
     def test_simple_path_to_face(self):
         res = list(faces_from_svg_path("M 0,0 v 1 h 1 z"))
