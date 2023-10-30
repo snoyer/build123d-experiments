@@ -2,38 +2,23 @@ import logging
 from math import pi, radians
 from typing import Callable, Union, cast
 
-from build123d import (
-    Compound,
-    Edge,
-    Face,
-    Shape,
-    ShapeList,
-    ShapePredicate,
-    TopAbs_Orientation,
-)
+from build123d import Compound, Edge, Face, Shape, ShapePredicate, TopAbs_Orientation
 
 logger = logging.getLogger(__name__)
 
 
-# we need to be able to find the parent Shape for any given Edge
-# I don't know if that's possible out-of-the-box in build123d
-# so I'll just use a dirty monkey-patch to set the `ancestor` attribute on the fly on edges listed by `Shape.edges()`
-
-MONKEYPATCHED_ANCESTOR_ATTR = "ancestor"
-
-
-def _set_ancestor_attr(original_f: Callable[[Shape], ShapeList[Edge]]):
-    def wrapped(self: Shape):
-        edges = original_f(self)
-        for edge in edges:
-            src = getattr(self, MONKEYPATCHED_ANCESTOR_ATTR, self)
-            setattr(edge, MONKEYPATCHED_ANCESTOR_ATTR, src)
-        return edges
-
-    return wrapped
+def find_ancestor(shape: Shape):
+    result = None
+    for ancestor in topo_ancestors(shape):
+        result = ancestor
+    return result
 
 
-Shape.edges = _set_ancestor_attr(Shape.edges)
+def topo_ancestors(shape: Shape):
+    parent = shape.topo_parent
+    while parent is not None:
+        yield parent
+        parent = parent.topo_parent
 
 
 class DiherdralFilter(ShapePredicate):
@@ -75,7 +60,7 @@ class DiherdralFilter(ShapePredicate):
             return edge_face_map
 
     def _faces_for_edge(self, edge: Edge):
-        if parent := getattr(edge, MONKEYPATCHED_ANCESTOR_ATTR, None):
+        if parent := find_ancestor(edge):
             edge_to_faces_map = self._edge_face_map_for_parent(parent)
             fs = edge_to_faces_map.get(edge)
             if fs and len(fs) == 2:
@@ -92,7 +77,10 @@ class DiherdralFilter(ShapePredicate):
 
             ref = edge.tangent_at(0)
             angle = float(v2.wrapped.AngleWithRef(v1.wrapped, ref.wrapped))
-            if edge.wrapped.Orientation() == TopAbs_Orientation.TopAbs_REVERSED:
+            if (
+                edge.wrapped
+                and edge.wrapped.Orientation() == TopAbs_Orientation.TopAbs_REVERSED
+            ):
                 angle = -angle
 
             if angle > 0:
